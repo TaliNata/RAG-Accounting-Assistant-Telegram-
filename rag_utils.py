@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-RAG: загрузка базы знаний, поиск по эмбеддингам, ответ через LLM.
-"""
 import os
 import re
 from pathlib import Path
@@ -14,7 +10,6 @@ KB_PATH = RAG_DIR / "knowledge_base.md"
 CHROMA_PATH = RAG_DIR / "chroma_db"
 COLLECTION_NAME = "bot_knowledge"
 
-# Модель для русского языка (при первом запуске скачается)
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 _client = None
@@ -31,8 +26,7 @@ def _get_embedding_model():
 
 
 def _chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> list[str]:
-    """Разбивает текст на перекрывающиеся фрагменты по предложениям/абзацам."""
-    # по абзацам
+
     blocks = re.split(r"\n+", text.strip())
     chunks = []
     current = []
@@ -44,7 +38,7 @@ def _chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> list[str
         block_len = len(block) + 1
         if current_len + block_len > chunk_size and current:
             chunks.append("\n".join(current))
-            # overlap: оставить последний кусок в current
+          
             overlap_len = 0
             new_current = []
             for s in reversed(current):
@@ -62,7 +56,7 @@ def _chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> list[str
 
 
 def _load_documents() -> list[str]:
-    """Загружает базу знаний из knowledge_base.md и при необходимости из папки docs/."""
+  
     texts = []
     if KB_PATH.exists():
         texts.append(KB_PATH.read_text(encoding="utf-8"))
@@ -81,7 +75,7 @@ def _load_documents() -> list[str]:
 
 
 def build_index():
-    """Строит или обновляет векторный индекс из базы знаний."""
+  
     global _client, _collection
     chunks = _load_documents()
     if not chunks:
@@ -109,7 +103,7 @@ def build_index():
 
 
 def _ensure_collection():
-    """Загружает коллекцию с диска или строит индекс."""
+  
     global _client, _collection
     if _collection is not None:
         return
@@ -118,12 +112,12 @@ def _ensure_collection():
     try:
         _collection = _client.get_collection(COLLECTION_NAME)
     except Exception:
-        # индекс ещё не создан — строим
+        
         build_index()
 
 
 def retrieve(question: str, top_k: int = 4) -> list[str]:
-    """Возвращает top_k наиболее релевантных фрагментов из базы знаний."""
+
     _ensure_collection()
     model = _get_embedding_model()
     q_emb = model.encode([question], show_progress_bar=False).tolist()
@@ -133,10 +127,10 @@ def retrieve(question: str, top_k: int = 4) -> list[str]:
 
 
 def answer_with_llm(question: str, context_chunks: list[str]) -> str:
-    """Формирует ответ по контексту через OpenAI API."""
+   
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        # Без API ключа возвращаем только контекст
+     
         return (
             "Ответ по базе знаний (без LLM, задайте OPENAI_API_KEY для полного RAG):\n\n"
             + "\n\n---\n\n".join(context_chunks[:3])
@@ -166,7 +160,7 @@ def answer_with_llm(question: str, context_chunks: list[str]) -> str:
 
 
 def ask(question: str, top_k: int = 4) -> str:
-    """RAG: поиск по базе + ответ на вопрос."""
+ 
     question = question.strip()
     if not question:
         return "Напишите вопрос текстом (например: как считаются отпускные?)."
@@ -174,3 +168,4 @@ def ask(question: str, top_k: int = 4) -> str:
     if not chunks:
         return "База знаний пуста. Добавьте knowledge_base.md или файлы в папку docs/."
     return answer_with_llm(question, chunks)
+
