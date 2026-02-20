@@ -1,0 +1,7 @@
+pandas
+openpyxl
+python-telegram-bot>=20.0
+python-dotenv
+chromadb
+sentence-transformers
+openai
